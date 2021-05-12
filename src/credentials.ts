@@ -2,7 +2,7 @@ import grpc from 'grpc';
 import jwt from 'jsonwebtoken';
 import {DateTime} from 'luxon';
 import {GrpcService, ISslCredentials, sleep, withTimeout} from "./utils";
-import {TokenService} from 'yandex-cloud';
+// import {TokenService} from 'yandex-cloud';
 import {yandex} from "../proto/bundle";
 import IamTokenService = yandex.cloud.iam.v1.IamTokenService;
 import ICreateIamTokenResponse = yandex.cloud.iam.v1.ICreateIamTokenResponse;
@@ -116,16 +116,20 @@ export class IamAuthService extends GrpcService<IamTokenService> implements IAut
 }
 
 export class MetadataAuthService implements IAuthService {
-    private tokenService: ITokenService;
+    private tokenService?: ITokenService;
 
     static MAX_TRIES = 5;
     static TRIES_INTERVAL = 2000;
 
     constructor(private dbName: string, public sslCredentials?: ISslCredentials, tokenService?: ITokenService) {
-        this.tokenService = tokenService || new TokenService();
+        this.tokenService = tokenService;
     }
 
     public async getAuthMetadata(): Promise<grpc.Metadata> {
+        await this.createTokenService();
+        if (!this.tokenService) {
+            throw new Error(`Empty token service!`);
+        }
         let token = this.tokenService.getToken();
         if (!token && typeof this.tokenService.initialize === 'function') {
             await this.tokenService.initialize();
@@ -141,5 +145,12 @@ export class MetadataAuthService implements IAuthService {
             return makeCredentialsMetadata(token, this.dbName);
         }
         throw new Error(`Failed to fetch access token via metadata service in ${MetadataAuthService.MAX_TRIES} tries!`);
+    }
+
+    private async createTokenService() {
+        if (!this.tokenService) {
+            const { TokenService } = await import('yandex-cloud');
+            this.tokenService = new TokenService();
+        }
     }
 }
