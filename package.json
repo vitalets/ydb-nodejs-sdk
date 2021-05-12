@@ -38,8 +38,7 @@
     "luxon": "^1.21.2",
     "pino": "^6.3.0",
     "protobufjs": "^6.8.8",
-    "reflect-metadata": "^0.1.13",
-    "yandex-cloud": "^1.4.2"
+    "reflect-metadata": "^0.1.13"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^8.3.5",
